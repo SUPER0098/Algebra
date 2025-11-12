@@ -1,5 +1,5 @@
 from math import sqrt, ceil
-from typing import List, Dict
+from typing import List, Dict, Any
 
 
 def is_prime(x: int) -> bool:
@@ -43,7 +43,7 @@ def is_palindromic(x: int) -> bool:
     return False
 
 
-def create_permutations(n: int, permutations: List = None) -> set[tuple[int]]:
+def create_permutations(n: int, plus: int = 0, permutations: List = []) -> set[tuple[int]]:
     """
     Рекурсивно генерирует все возможные перестановки для n элементов.
     Возвращает множество кортежей, представляющих перестановки.
@@ -54,11 +54,11 @@ def create_permutations(n: int, permutations: List = None) -> set[tuple[int]]:
         result.add(tuple(permutations))
         return result
 
-    for i in range(n):
+    for i in range(plus, n + plus):
         if i not in permutations:
             new = permutations.copy()
             new.append(i)
-            result.update(create_permutations(n, new))
+            result.update(create_permutations(n, plus, new))
 
     return result
 
@@ -86,7 +86,7 @@ def create_all_options(x: int) -> List[int]:
 
     len_x = len(str(x))
 
-    for i in create_permutations(len_x, []):
+    for i in create_permutations(len_x, 0, []):
         result.append(apply_permutation(x, i))
 
     return result
@@ -220,5 +220,166 @@ def prime_divs(x: int) -> List[tuple[int, int]]:
 
     if x != 1:
         result.append((x, 1))
+
+    return result
+
+
+def compozition_permutation(x: tuple[int], y: tuple[int]) -> tuple[int]:
+    result: List[int] = []
+    for i in range(len(x)):
+        result.append(y[x[i] - 1])
+    return tuple(result)
+
+
+def is_group(group: list[tuple[int]]) -> bool:
+    if not tuple(range(1, len(group[0]))) in group:
+        return False
+
+    for x in group:
+        for y in group:
+            if not compozition_permutation(x, y) in group:
+                return False
+
+    return True
+
+
+def permutation_1(group: list[tuple[int]], permutation: tuple[int]) -> tuple[int]:
+    for i in group:
+        if compozition_permutation(i, permutation) == (1, 2, 3, 4):
+            return i
+
+
+def rec(ls, cur, n):
+    if n == len(ls):
+        if is_group(cur):
+            return [tuple(cur)]
+        return []
+    subgroups = []
+    subgroups.extend(rec(ls, cur.copy(), n + 1))
+    cur.append(ls[n][0])
+    if ls[n][0] != ls[n][1]:
+        cur.append(ls[n][1])
+    subgroups.extend(rec(ls, cur.copy(), n + 1))
+    return subgroups
+
+
+def all_subgroups(group: list[tuple[int]]) -> list[list[tuple[int]]]:
+    first_list = []
+    second_list = []
+    for i in group:
+        if i not in second_list:
+            first_list.append(i)
+            second_list.append(permutation_1(group, i))
+
+    new_list = [(first_list[i], second_list[i]) for i in range(len(first_list))]
+
+    return rec(new_list, [], 0)
+
+
+def create_classes(group: list[tuple[int]], subgroup: list[tuple[int]], t: str) -> list[set[tuple[int]]]:
+    result = []
+
+    for g in group:
+        t_class = set()
+        for s in subgroup:
+            if t == "left":
+                t_class.add(compozition_permutation(g, s))
+            else:
+                t_class.add(compozition_permutation(s, g))
+        if t_class not in result:
+            result.append(t_class)
+
+    return result
+
+
+def is_equal_classes(class_1: list[set[tuple[int]]], class_2: list[set[tuple[int]]]) -> bool:
+    for i in class_1:
+        if i not in class_2:
+            return False
+    return True
+
+
+def degree_permutations(permutation: tuple[int], d: int) -> tuple[int]:
+    result = permutation
+    for _ in range(d - 1):
+        result = compozition_permutation(result, permutation)
+    return result
+
+
+def create_subgroup(permutation: tuple[int]) -> set[tuple[int]]:
+    cur = permutation
+    subgroup = set()
+    while cur not in subgroup:
+        subgroup.add(cur)
+        cur = compozition_permutation(cur, permutation)
+    return subgroup
+
+
+def order(x: Any) -> int:
+    if isinstance(x, tuple):
+        for i in range(1, 100):
+            if degree_permutations(x, i) == tuple(range(1, len(x) + 1)):
+                return i
+    else:
+        return len(x)
+
+
+def all_solutions(group: list[tuple[int]], d: int, need: tuple[int]) -> list[tuple[int]]:
+    result = []
+    for i in group:
+        if degree_permutations(i, d) == need:
+            result.append(i)
+
+    return result
+
+
+def create_group_z_m(m: int) -> list[int]:
+    result = []
+    for i in range(1, m):
+        if gcd(i, m) == 1:
+            result.append(i)
+
+    return result
+
+
+def all_subs_z_m(group: list[int]) -> list[set[int]]:
+    return [{group[0]}, {group[0], group[1]}]
+
+
+def order_z_m(m: int, x: int) -> int:
+    dig = 1
+    t = x
+    while t != 1:
+        t = t * x % m
+        dig += 1
+    return dig
+
+
+def is_primitivity(m: int, x: int) -> bool:
+    return len(create_group_z_m(m)) == order_z_m(m, x)
+
+
+def all_generators(m: int) -> List[int]:
+    z_m = create_group_z_m(m)
+    return [i for i in z_m if is_primitivity(m, i)]
+
+
+def create_cycle(m: int, t: int, v: str):
+    result = []
+    temp = t
+    while temp not in result:
+        result.append(temp)
+        if v == "+":
+            temp = (temp + t) % m
+        else:
+            temp = temp * t % m
+    return result
+
+
+def all_generators_for_ad(group: List[int], m: int) -> List[int]:
+    result = []
+    for i in group:
+        if set(create_cycle(m, i, "+")) == set(group):
+            result.append(i)
 
     return result
