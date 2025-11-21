@@ -73,10 +73,3 @@ def div_polynoms(a: List[float], b: List[float]) -> (List[float], List[float]):
         if abs(c_i) > 1e-6:
             ost.append(c_i)
     return result, ost
-
-
-# datas = [[-24, -2, 5, 1], [24, -10, -3, 1], [10, -13, 2, 1]]
-# elements = []
-#
-# for i in datas:
-#     elements.append(RingElement(i))
